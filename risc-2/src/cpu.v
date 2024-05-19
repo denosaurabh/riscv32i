@@ -63,6 +63,7 @@ wire s_type;
 wire b_type;
 wire u_type;
 wire j_type;
+wire ecall_type;
 
 
 RV32I_Decoder decoder (
@@ -82,7 +83,8 @@ RV32I_Decoder decoder (
     .S_type(s_type),
     .B_type(b_type),
     .U_type(u_type),
-    .J_type(j_type)
+    .J_type(j_type),
+    .ECALL_type(ecall_type)
 );
 
 
@@ -211,6 +213,14 @@ always @(posedge clk or posedge reset) begin
 
         end else if (j_type) begin
             $display("J-type");
+        end else if (ecall_type) begin
+            $display("ECALL");
+
+            case (funct3)
+                3'b000: begin
+                    $display("ECALL PRINT: %b %d", regs[rd], regs[rd]);
+                end
+            endcase
         end
     end
 
@@ -323,11 +333,19 @@ initial begin
     // RAM[2] = 32'b00000000001100010000001000110011; // add x4 x2 x3
 
 
+    // RAM[0] = 32'b00000001110100100000010100110111;
+    // RAM[1] = 32'b00001010010101010000010100010011;
+    // RAM[2] = 32'b00000001011100100101010110110111;
+    // RAM[3] = 32'b00010110010001011000010110010011;
+    // RAM[4] = 32'b00000000101101010000011000110011;
+
+
+
     RAM[0] = 32'b00000001110100100000010100110111;
     RAM[1] = 32'b00001010010101010000010100010011;
-    RAM[2] = 32'b00000001011100100101010110110111;
-    RAM[3] = 32'b00010110010001011000010110010011;
-    RAM[4] = 32'b00000000101101010000011000110011;
+    RAM[2] = 32'b00000000000000000000010101110011;
+
+
 
 
     // RAM[0] = 32'b00000000001100010000000010110011;  // add ra sp gp (R-type)
@@ -365,7 +383,8 @@ module RV32I_Decoder (
     output reg S_type,   // Signal indicating S-type instruction
     output reg B_type,
     output reg U_type,
-    output reg J_type
+    output reg J_type,
+    output reg ECALL_type
 );
 
 parameter OPCODE_R = 7'b0110011; // R-type
@@ -376,7 +395,7 @@ parameter OPCODE_BRANCH = 7'b1100011;   // Branch instructions (B-type format)
 parameter OPCODE_JAL = 7'b1101111;  // Jump and link (J-type)
 parameter OPCODE_LUI = 7'b0110111;  // Load upper immediate (U-type)
 parameter OPCODE_AUIPC = 7'b0010111;    // Add upper immediate to PC (U-type)
-
+parameter OPCODE_ECALL = 7'b1110011;    // Add upper immediate to PC (U-type)
 
 always @* begin
     opcode = instr[6:0];
@@ -392,6 +411,7 @@ always @* begin
     B_type = (opcode == OPCODE_BRANCH);
     U_type = (opcode == OPCODE_LUI) | (opcode == OPCODE_AUIPC);
     J_type = (opcode == OPCODE_JAL);
+    ECALL_type = (opcode == OPCODE_ECALL);
     
     // Decode immediate value based on instruction type
     if (R_type) begin
@@ -421,6 +441,12 @@ always @* begin
         rd = instr[11:7];
     end else if (J_type) begin
         imm = { {11{instr[31]}}, instr[31], instr[19:12], instr[20], instr[30:21], 1'b0 };
+        rd = instr[11:7];
+    end else if (ECALL_type) begin
+        imm = { {20{instr[31]}}, instr[31:20] };
+        rs2 = 5'b0;
+        rs1 = instr[19:15];
+        funct3 = instr[14:12];
         rd = instr[11:7];
     end
 end

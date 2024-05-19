@@ -59,6 +59,10 @@ const JTypeInstruction = enum {
     Jal,
 };
 
+const ECALLTypeFunct3 = enum {
+    Print,
+};
+
 fn getRTypeInstruction(instruction: []const u8) !RTypeInstruction {
     if (std.mem.eql(u8, instruction, "add")) return RTypeInstruction.Add;
     if (std.mem.eql(u8, instruction, "sub")) return RTypeInstruction.Sub;
@@ -115,6 +119,11 @@ fn getUTypeInstruction(instruction: []const u8) !UTypeInstruction {
     unreachable;
 }
 
+fn getECallTypeFunct3(instruction: []const u8) !ECALLTypeFunct3 {
+    if (std.mem.eql(u8, instruction, "print")) return ECALLTypeFunct3.Print;
+    unreachable;
+}
+
 const Instruction = union(enum) {
     RType: struct {
         instruction: RTypeInstruction,
@@ -149,6 +158,11 @@ const Instruction = union(enum) {
         instruction: JTypeInstruction,
         rd: u8,
         imm: i32,
+    },
+    ECALLType: struct {
+        funct3: ECALLTypeFunct3,
+        rd: u8,
+        rs1: u8,
     },
     pub fn encode(self: *const Instruction) !u32 {
         switch (self.*) {
@@ -288,8 +302,20 @@ const Instruction = union(enum) {
                 const opcode: u32 = 0b1101111;
                 return opcode | (@as(u32, jtype.rd) << 7) | imm19_12 | imm11 | imm10_1 | imm20;
             },
+            .ECALLType => |ecalltype| {
+                const imm_as_u32: u32 = 0b000000000000; // 12-bit
+                const opcode: u32 = 0b1110011;
+                const funct3: u32 = switch (ecalltype.funct3) {
+                    .Print => 0b000,
+                };
+                return opcode | (@as(u32, ecalltype.rd) << 7) | (funct3 << 12) | (@as(u32, ecalltype.rs1) << 15) | (imm_as_u32 << 20);
+            },
         }
     }
+};
+
+const ParseInstructionError = error{
+    InvalidOrUnsupportedInstruction,
 };
 
 pub fn parseInstruction(allocator: *const std.mem.Allocator, tokens: [][]const u8) !Instruction {
@@ -330,11 +356,11 @@ pub fn parseInstruction(allocator: *const std.mem.Allocator, tokens: [][]const u
             while (it.next()) |token| {
                 try offset_and_rs1.append(token);
             }
-            imm = try std.fmt.parseInt(i12, offset_and_rs1.items[0], 10);
+            imm = try parseInt(i12, offset_and_rs1.items[0]);
             rs1 = try registry.parseRegister(offset_and_rs1.items[1], &reg_map);
         } else {
             rs1 = try registry.parseRegister(tokens[2], &reg_map);
-            imm = try std.fmt.parseInt(i12, tokens[3], 10);
+            imm = try parseInt(i12, tokens[3]);
         }
         const itype_instruction = try getITypeInstruction(instruction);
         return Instruction{
@@ -353,7 +379,7 @@ pub fn parseInstruction(allocator: *const std.mem.Allocator, tokens: [][]const u
         while (it.next()) |token| {
             try offset_and_rs1.append(token);
         }
-        const imm = try std.fmt.parseInt(i12, offset_and_rs1.items[0], 10);
+        const imm = try parseInt(i12, offset_and_rs1.items[0]);
         const rs1 = try registry.parseRegister(offset_and_rs1.items[1], &reg_map);
         const stype_instruction = try getSTypeInstruction(instruction);
         return Instruction{
@@ -367,7 +393,7 @@ pub fn parseInstruction(allocator: *const std.mem.Allocator, tokens: [][]const u
     } else if (utils.matchesAny(instruction, &btype_instructions)) {
         const rs1 = try registry.parseRegister(tokens[1], &reg_map);
         const rs2 = try registry.parseRegister(tokens[2], &reg_map);
-        const imm = try std.fmt.parseInt(i12, tokens[3], 10);
+        const imm = try parseInt(i12, tokens[3]);
         const btype_instruction = try getBTypeInstruction(instruction);
         return Instruction{
             .BType = .{
@@ -379,7 +405,7 @@ pub fn parseInstruction(allocator: *const std.mem.Allocator, tokens: [][]const u
         };
     } else if (utils.matchesAny(instruction, &utype_instructions)) {
         const rd = try registry.parseRegister(tokens[1], &reg_map);
-        const imm = try std.fmt.parseInt(i32, tokens[2], 10);
+        const imm = try parseInt(i32, tokens[2]);
         const utype_instruction = try getUTypeInstruction(instruction);
         return Instruction{
             .UType = .{
@@ -398,6 +424,32 @@ pub fn parseInstruction(allocator: *const std.mem.Allocator, tokens: [][]const u
                 .imm = imm,
             },
         };
+    } else if (std.mem.eql(u8, instruction, "ecall")) {
+        const rd = try registry.parseRegister(tokens[2], &reg_map);
+        // const rs1 = try registry.parseRegister(tokens[3], &reg_map);
+        const rs1: u8 = 0b00000; // 5-bit
+
+        return Instruction{
+            .ECALLType = .{
+                .funct3 = ECALLTypeFunct3.Print,
+                .rs1 = rs1,
+                .rd = rd,
+            },
+        };
     }
-    unreachable;
+
+    print("INSTRUCTION '{s}'' is either invalid or unsupported instruction", .{instruction});
+
+    return ParseInstructionError.InvalidOrUnsupportedInstruction;
+    // unreachable;
+}
+
+pub fn parseInt(comptime T: type, buf: []const u8) !T {
+    if (buf.len > 2 and buf[0] == '0' and (buf[1] == 'x' or buf[1] == 'X')) {
+        // Hexadecimal string
+        return std.fmt.parseInt(T, buf[2..], 16);
+    } else {
+        // Decimal string
+        return std.fmt.parseInt(T, buf, 10);
+    }
 }

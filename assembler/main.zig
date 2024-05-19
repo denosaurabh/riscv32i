@@ -28,13 +28,15 @@ pub fn main() !void {
         defer file.close();
 
         while (iterator.next()) |line| {
-            // if line begins with //
-            if (std.mem.startsWith(u8, line, "//")) {
+            const comment_index = std.mem.indexOf(u8, line, "//");
+            const truncated_line = if (comment_index) |index| line[0..index] else line;
+
+            if (truncated_line.len == 0) {
                 continue;
             }
 
             // assemble
-            const binary_output = assembler.assemble(&allocator, line) catch |err| {
+            const binary_output = assembler.assemble(&allocator, truncated_line) catch |err| {
                 std.log.err("Error assembling line: {}", .{err});
                 return err;
             };
@@ -49,6 +51,8 @@ pub fn main() !void {
 
             _ = try file.writeAll(result);
         }
+
+        // print("INSTRUCTIONS COMPILED :)\n", .{});
     } else |err| {
         print("Error reading file: {s}\n", .{@errorName(err)});
     }
