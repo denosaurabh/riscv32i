@@ -10,7 +10,7 @@ async def test_cpu(cpu):
     
     cocotb.start_soon(Clock(cpu.clk, 10, units='ns').start())
     
-    for i in range(5):
+    for i in range(10):
         await RisingEdge(cpu.clk)
 
         # print(f"INSR: {cpu.out_istr.value}")

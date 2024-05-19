@@ -16,6 +16,9 @@ module CPU (
 reg [31:0] pc;
 reg [31:0] instruction;
 
+// DATA RAM
+reg [31:0] RAM[0:255]; // RAM with 32-bits x 256
+
 // REGISTERS
 reg [31:0] regs [0:31]; // 32 registers
 /*
@@ -29,21 +32,6 @@ reg [31:0] s[0:11];  // x8-x9, x18-x27
 reg [31:0] a[0:7];  // x10-x17
 */
 
-
-
-
-/* *********************************** */
-// PROGRAM COUNTER
-ProgramCounter program_counter (
-    .clk(clk),
-    .reset(reset),
-    .enable(1'b1),
-
-    .load(1'b0),
-    .addr(32'b0),
-    
-    .pc(pc)
-);
 
 
 
@@ -121,12 +109,22 @@ RV32I_Decoder decoder (
 //     .overflow()
 // );
 
+reg [31:0] s_type_adr;
+reg [31:0] s_type_data;
+
+reg istr_mem_load = 1'b0;
+reg [31:0] istr_mem_load_addr = 32'b0;
+
 // always @* begin
 always @(posedge clk or posedge reset) begin
     $display("instruction: %b", instruction);
 
     if (reset) begin
         $display("reset");
+
+        s_type_adr <= 32'b0;
+        s_type_data <= 32'b0;
+
     end else begin
         // ALU
         if (r_type) begin
@@ -151,7 +149,43 @@ always @(posedge clk or posedge reset) begin
 
 
         end else if (s_type) begin
+            // TODO: TEST
             $display("S-type");
+
+            s_type_adr = regs[rs1] + imm;
+            s_type_data = regs[rs2];
+
+            case (funct3) 
+                3'b000: begin
+                    $display("BYTE");
+                    RAM[regs[rs1] + imm] = regs[rs2];
+
+                    case (s_type_adr[1:0])
+                        2'b00: RAM[s_type_adr[31:2]][7:0] <= s_type_data[7:0];
+                        2'b01: RAM[s_type_adr[31:2]][15:8] <= s_type_data[7:0];
+                        2'b10: RAM[s_type_adr[31:2]][23:16] <= s_type_data[7:0];
+                        2'b11: RAM[s_type_adr[31:2]][31:24] <= s_type_data[7:0];
+                    endcase
+
+                end
+                3'b001: begin
+                    $display("HALF");
+
+                    case (s_type_adr[1])
+                        1'b0: RAM[s_type_adr[31:2]][15:0] <= s_type_data[15:0];
+                        1'b1: RAM[s_type_adr[31:2]][31:16] <= s_type_data[15:0];
+                    endcase
+
+                end
+                3'b010: begin
+                    $display("WORD");
+
+                    RAM[s_type_adr[31:2]] <= s_type_data;
+
+                end
+
+            endcase
+
         end else if (b_type) begin
             $display("B-type");
         end else if (u_type) begin
@@ -160,11 +194,16 @@ always @(posedge clk or posedge reset) begin
             case (opcode) 
                 7'b0110111: begin // LUI
                     $display("LUI");
-                    regs[rd] = imm >> 12;
+
+                    // TODO: TEST it
+                    // regs[rd] = imm >> 12;
+                    regs[rd] = imm;
                     $display("rd = %b", regs[rd]);
                 end
                 7'b0010111: begin // AUIPC
                     $display("AUIPC");
+
+                    // TODO: TEST it
                     regs[rd] = pc + imm;
                     $display("rd = %b", regs[rd]);
                 end
@@ -179,6 +218,22 @@ always @(posedge clk or posedge reset) begin
 $display("\n");
 
 end
+
+
+
+/* *********************************** */
+// PROGRAM COUNTER
+ProgramCounter program_counter (
+    .clk(clk),
+    .reset(reset),
+    .enable(1'b1),
+
+    .load(istr_mem_load),
+    .addr(istr_mem_load_addr),
+    
+    .pc(pc)
+);
+
 
 
 
@@ -263,9 +318,16 @@ initial begin
     // RAM[1] = 32'b11111111110000010000000100010011; // addi x2 x2 -4
 
 
-    RAM[0] = 32'b00000000000001100100000100110111; // lui x2 100
-    RAM[1] = 32'b00000000000000000100000110110111; // lui x3 4
-    RAM[2] = 32'b00000000001100010000001000110011; // add x4 x2 x3
+    // RAM[0] = 32'b00000000000001100100000100110111; // lui x2 100
+    // RAM[1] = 32'b00000000000000000100000110110111; // lui x3 4
+    // RAM[2] = 32'b00000000001100010000001000110011; // add x4 x2 x3
+
+
+    RAM[0] = 32'b00000001110100100000010100110111;
+    RAM[1] = 32'b00001010010101010000010100010011;
+    RAM[2] = 32'b00000001011100100101010110110111;
+    RAM[3] = 32'b00010110010001011000010110010011;
+    RAM[4] = 32'b00000000101101010000011000110011;
 
 
     // RAM[0] = 32'b00000000001100010000000010110011;  // add ra sp gp (R-type)
