@@ -7,7 +7,7 @@ const print = std.debug.print;
 
 pub fn main() !void {
     const assemly_path = "src/assembly.asm";
-    const output_path = "src/output.asm";
+    const output_path = "src/output.bin";
 
     // allocator
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);

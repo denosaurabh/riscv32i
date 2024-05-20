@@ -1,15 +1,6 @@
-// https://www.fromthetransistor.com
-
 module CPU (
     input clk,
-    input reset,
-
-    output wire [31:0] out_istr,
-
-    output wire [2:0] o_funct3,
-    output wire [6:0] o_funct7,
-    output wire [6:0] o_opcode,
-    output wire [31:0] o_imm
+    input reset
 );
 
 // COUNTER & INSTRUCTION MEMORY
@@ -20,19 +11,7 @@ reg [31:0] instruction;
 reg [31:0] RAM[0:255]; // RAM with 32-bits x 256
 
 // REGISTERS
-reg [31:0] regs [0:31]; // 32 registers
-/*
-reg [31:0] zero = 32'b0; // x0
-reg [31:0] ra; // x1
-reg [31:0] sp; // x2
-reg [31:0] gp; // x3
-reg [31:0] tp; // x4
-reg [31:0] t[0:6]; // x5-x7, x28-x31
-reg [31:0] s[0:11];  // x8-x9, x18-x27
-reg [31:0] a[0:7];  // x10-x17
-*/
-
-
+reg [31:0] regs[0:31]; // 31-bit x 32 registers
 
 
 /* *********************************** */
@@ -93,24 +72,6 @@ RV32I_Decoder decoder (
 /* *********************************** */
 // EXECUTE
 
-// reg [31:0] alu_a;
-// reg [31:0] alu_b;
-// wire [31:0] alu_res;
-
-// ALU alu (
-//     .A(alu_a),
-//     .B(alu_b),
-
-//     .enable(1'b1),
-
-//     .funct3(funct3),
-//     .funct7(funct7),
-
-//     .result(alu_res),
-//     .zero(),
-//     .overflow()
-// );
-
 reg [31:0] s_type_adr;
 reg [31:0] s_type_data;
 
@@ -119,7 +80,11 @@ reg [31:0] istr_mem_load_addr = 32'b0;
 
 // always @* begin
 always @(posedge clk or posedge reset) begin
+    $display("program_counter = %b, %d", pc, pc);
     $display("instruction: %b", instruction);
+
+    // istr_mem_load = 1'b0;
+    // istr_mem_load_addr = 32'b0;
 
     if (reset) begin
         $display("reset");
@@ -213,6 +178,14 @@ always @(posedge clk or posedge reset) begin
 
         end else if (j_type) begin
             $display("J-type");
+
+            regs[rd] = pc + 4;
+            istr_mem_load = 1'b1;
+            istr_mem_load_addr = pc - (4*3);
+
+            $display("pc = %b", pc);
+
+
         end else if (ecall_type) begin
             $display("ECALL");
 
@@ -223,6 +196,7 @@ always @(posedge clk or posedge reset) begin
             endcase
         end
     end
+
 
 
 $display("\n");
@@ -244,15 +218,6 @@ ProgramCounter program_counter (
     .pc(pc)
 );
 
-
-
-
-assign out_istr = instruction;
-
-assign o_funct3 = funct3;
-assign o_funct7 = funct7;
-assign o_opcode = opcode;
-assign o_imm = imm;
 
 
 endmodule;
@@ -308,54 +273,14 @@ always @(posedge clk) begin
         // Fetch instruction based on address. Address is divided by 4 (shifted right by 2 bits) 
         // because each instruction is 4 bytes (32 bits) wide.
         instruction <= RAM[addr >> 2];
+        // instruction = RAM[addr >> 2];
         // instruction <= RAM[addr];
     end
-
-    // always @(*) begin
-    // Fetch instruction based on address. Address is divided by 4 (shifted right by 2 bits) 
-    // because each instruction is 4 bytes (32 bits) wide.
-    // instruction <= RAM[addr >> 2];
-    // instruction = RAM[addr >> 2];
-    // instruction = RAM[addr[31:2]];
 end
 
 
 initial begin
-    // Initialize memory with some instructions. This is just a placeholder.
-    // In a real scenario, the program or compiler output would populate this.
-    
-    // RAM[0] = 32'b00000000000001100100000100110111; // lui x2 100
-    // RAM[1] = 32'b11111111110000010000000100010011; // addi x2 x2 -4
-
-
-    // RAM[0] = 32'b00000000000001100100000100110111; // lui x2 100
-    // RAM[1] = 32'b00000000000000000100000110110111; // lui x3 4
-    // RAM[2] = 32'b00000000001100010000001000110011; // add x4 x2 x3
-
-
-    // RAM[0] = 32'b00000001110100100000010100110111;
-    // RAM[1] = 32'b00001010010101010000010100010011;
-    // RAM[2] = 32'b00000001011100100101010110110111;
-    // RAM[3] = 32'b00010110010001011000010110010011;
-    // RAM[4] = 32'b00000000101101010000011000110011;
-
-
-
-    RAM[0] = 32'b00000001110100100000010100110111;
-    RAM[1] = 32'b00001010010101010000010100010011;
-    RAM[2] = 32'b00000000000000000000010101110011;
-
-
-
-
-    // RAM[0] = 32'b00000000001100010000000010110011;  // add ra sp gp (R-type)
-    // RAM[1] = 32'b11111111110000010000000100010011; // addi x2 x2 -4
-    // RAM[2] = 32'b00000000001000100000000100010011; // addi x2 x4 2
-    // RAM[3] = 32'b11000100100100100100100100100101;  
-    // RAM[4] = 32'b11100100100100100100100100100101;  
-    // RAM[5] = 32'b11110100100100100100100100100101;  
-
-    // ... more instructions ...
+    $readmemb("instructions.bin", RAM);
 end
 
 
@@ -365,7 +290,7 @@ endmodule
 
 
 
-
+// CREDIT: https://www.fromthetransistor.com
 module RV32I_Decoder (
     input [31:0] instr,  // 32-bit instruction input
 
@@ -460,7 +385,7 @@ endmodule
 
 
 
-
+// CREDIT: https://www.fromthetransistor.com
 function [31:0] ALU;
 
 input enable;
