@@ -114,10 +114,63 @@ always @(posedge clk) begin
                 next_pc = (regs[rs1] + imm) & ~1; // Compute target address, ensure LSB is 0
             end
             default: begin
-                next_pc = pc + 4; // Default to next sequential instruction
+                next_pc = pc + 4;
             end
         endcase
 
+    end else if (b_type) begin
+        $display("BRANCH");
+
+        case (funct3) 
+            3'b000: begin
+                $display("BEQ");
+                 if (regs[rs1] == regs[rs2])
+                    next_pc = pc + {{19{imm[12]}}, imm};
+                else
+                    next_pc = pc + 4;
+            end
+            3'b001: begin
+                $display("BNE");
+                 if (regs[rs1] != regs[rs2])
+                    next_pc = pc + {{19{imm[12]}}, imm};
+                else
+                    next_pc = pc + 4;
+            end
+            3'b100: begin
+                $display("BLT");
+                if ($signed(regs[rs1]) < $signed(regs[rs2]))
+                    next_pc = pc + {{19{imm[12]}}, imm};
+                else
+                    next_pc = pc + 4;
+            end
+            3'b101: begin
+                $display("BGE");
+                if ($signed(regs[rs1]) >= $signed(regs[rs2]))
+                    next_pc = pc + {{19{imm[12]}}, imm};
+                else
+                    next_pc = pc + 4; 
+            end
+            3'b110: begin
+                $display("BLTU");
+                next_pc = pc + 4;
+                  if (regs[rs1] < regs[rs2])
+                    next_pc = pc + {{19{imm[12]}}, imm};
+                else
+                    next_pc = pc + 4;
+            end
+            3'b111: begin
+                $display("BGEU");
+                if (regs[rs1] >= regs[rs2])
+                    next_pc = pc + {{19{imm[12]}}, imm};
+                else
+                    next_pc = pc + 4;
+            end
+            default: begin
+                next_pc = pc + 4;
+            end
+
+        endcase
+        
     end else begin
         next_pc = pc + 4; // Default to next sequential instruction
     end
@@ -144,7 +197,6 @@ always @(posedge clk or posedge reset) begin
     end else begin
         // ALU
         if (r_type) begin
-
             $display("R-type");
             regs[rd] = ALU(1'b1, regs[rs1], regs[rs2], funct3, funct7);
             $display("rd = %b", regs[rd]);
@@ -238,7 +290,7 @@ always @(posedge clk or posedge reset) begin
                     $display("AUIPC");
 
                     // TODO: TEST it
-                    // regs[rd] = pc + imm;
+                    // regs[rd] = pc + imm;         
                     $display("rd = %b", regs[rd]);
                 end
             endcase
@@ -271,38 +323,6 @@ end
 endmodule;
 
 
-
-/*
-module ProgramCounter (
-    input wire clk,
-    input wire reset,
-    input wire enable,
-
-    input wire load,
-    input wire [31:0] addr,
-    
-    output wire [31:0] pc
-);
-
-always @(posedge clk or posedge reset) begin
-    
-    if (reset) begin
-        pc <= 32'b0;
-    end else if (enable) begin
-        if (load) begin
-            // pc <= addr;
-            assign pc = addr;
-        end else begin
-            // $display("pc: %b", pc);
-            // pc <= pc + 4;
-            assign pc = pc + 4;
-        end
-    end
-
-end
-
-endmodule
-*/
 
 
 module ProgramCounter (
@@ -346,41 +366,6 @@ end
 
 endmodule
 
-
-
-/*
-module InstructionMemory (
-    input clk,
-    input reset,
-    input wire [31:0] addr,
-
-    output wire [31:0] instruction
-);
-
-reg [31:0] RAM[0:255]; // RAM with 32-bits x 256
-
-always @(posedge clk) begin
-    if (reset) begin
-        // instruction <= 32'b0;
-        assign instruction = 32'b0;
-    end else begin
-        // Fetch instruction based on address. Address is divided by 4 (shifted right by 2 bits) 
-        // because each instruction is 4 bytes (32 bits) wide.
-        // instruction <= RAM[addr >> 2];
-        assign instruction = RAM[addr >> 2];
-        // instruction <= RAM[addr];
-    end
-end
-
-
-initial begin
-    $readmemb("instructions.bin", RAM);
-end
-
-
-
-endmodule
-*/
 
 
 
@@ -526,7 +511,7 @@ end else begin
         
         SLL: ALU = A << B[4:0];
         SLT: ALU = (A < B) ? 1 : 0;
-        SLTU: ALU = (A < B) ? 1 : 0; // !TODO
+        SLTU: ALU = (A < B) ? 1 : 0; // TODO
         XOR: ALU = A ^ B;
         SRL_SRA: begin
             if (funct7 == STARD)
