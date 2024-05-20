@@ -28,7 +28,7 @@ pub fn main() !void {
         defer file.close();
 
         while (iterator.next()) |line| {
-            const comment_index = std.mem.indexOf(u8, line, "//");
+            const comment_index = std.mem.indexOf(u8, line, "#");
             const truncated_line = if (comment_index) |index| line[0..index] else line;
 
             if (truncated_line.len == 0) {

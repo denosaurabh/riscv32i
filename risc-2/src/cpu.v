@@ -101,8 +101,6 @@ always @(posedge clk) begin
     $display("[PC]");
 
     if (j_type) begin // JAL opcode
-        $display("JAL imm: %d", imm);
-
         regs[rd] = pc + 4;
         next_pc = pc + imm; // Jump to the target address
 
@@ -396,6 +394,7 @@ parameter OPCODE_LOAD = 7'b0000011; // Load instructions (I-type format)
 parameter OPCODE_STORE = 7'b0100011; // Store instructions (S-type format)
 parameter OPCODE_BRANCH = 7'b1100011;   // Branch instructions (B-type format)
 parameter OPCODE_JAL = 7'b1101111;  // Jump and link (J-type)
+parameter OPCODE_JALR = 7'b1100111;  // Jump and link (J-type)
 parameter OPCODE_LUI = 7'b0110111;  // Load upper immediate (U-type)
 parameter OPCODE_AUIPC = 7'b0010111;    // Add upper immediate to PC (U-type)
 parameter OPCODE_ECALL = 7'b1110011;    // Add upper immediate to PC (U-type)
@@ -409,7 +408,7 @@ always @* begin
     
     // Decode instruction type based on opcode
     R_type = (opcode == OPCODE_R);
-    I_type = (opcode == OPCODE_I) | (opcode == OPCODE_LOAD);
+    I_type = (opcode == OPCODE_I) | (opcode == OPCODE_LOAD) | (opcode == OPCODE_JALR);
     S_type = (opcode == OPCODE_STORE);
     B_type = (opcode == OPCODE_BRANCH);
     U_type = (opcode == OPCODE_LUI) | (opcode == OPCODE_AUIPC);
