@@ -432,7 +432,7 @@ pub fn parseInstruction(allocator: *const std.mem.Allocator, tokens: [][]const u
         };
     } else if (std.mem.eql(u8, instruction, "jal")) {
         const rd = try registry.parseRegister(tokens[1], &reg_map);
-        const imm = try std.fmt.parseInt(i32, tokens[2], 10);
+        const imm = try parseInt(i32, tokens[2]);
         return Instruction{
             .JType = .{
                 .instruction = JTypeInstruction.Jal,
