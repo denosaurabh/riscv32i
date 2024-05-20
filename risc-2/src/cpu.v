@@ -105,6 +105,21 @@ always @(posedge clk) begin
 
         regs[rd] = pc + 4;
         next_pc = pc + imm; // Jump to the target address
+
+    end else if (i_type) begin
+
+        case (opcode)
+            7'b1100111: begin
+                $display("JALR");
+
+                regs[rd] = pc + 4;
+                next_pc = (regs[rs1] + imm) & ~1; // Compute target address, ensure LSB is 0
+            end
+            default: begin
+                next_pc = pc + 4; // Default to next sequential instruction
+            end
+        endcase
+
     end else begin
         next_pc = pc + 4; // Default to next sequential instruction
     end
