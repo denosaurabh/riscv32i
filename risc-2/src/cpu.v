@@ -155,6 +155,25 @@ always @(posedge clk or posedge reset) begin
             case (opcode) 
                 7'b0000011: begin
                     $display("LOAD");
+
+                    case (funct3) 
+                        3'b000: begin
+                            $display("BYTE");
+                            regs[rd] = RAM[regs[rs1] + imm][7:0];
+                            $display("rd = %b", regs[rd]);
+                        end
+                        3'b001: begin
+                            $display("HALF");
+                            regs[rd] = RAM[regs[rs1] + imm][15:0];
+                            $display("rd = %b", regs[rd]);
+                        end
+                        3'b010: begin
+                            $display("WORD");
+                            regs[rd] = RAM[regs[rs1] + imm];
+                            $display("rd = %b", regs[rd]);
+                        end
+                    endcase
+
                 end
                 7'b0010011: begin
                     $display("ALU");
