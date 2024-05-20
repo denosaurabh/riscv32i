@@ -295,12 +295,28 @@ const Instruction = union(enum) {
                 return opcode | (@as(u32, utype.rd) << 7) | imm31_12;
             },
             .JType => |jtype| {
-                const imm20 = (@as(u32, @bitCast(jtype.imm)) & 0x80000) << 11; // bit 20 of the immediate
-                const imm10_1 = (@as(u32, @bitCast(jtype.imm)) & 0x7FE) << 20; // bits [10:1] of the immediate
-                const imm11 = (@as(u32, @bitCast(jtype.imm)) & 0x100000) >> 9; // bit 11 of the immediate
-                const imm19_12 = (@as(u32, @bitCast(jtype.imm)) & 0xFF000) << 1; // bits [19:12] of the immediate
+                // const imm = @as(u32, @bitCast(jtype.imm));
+                // const imm20 = (imm & 0x80000) << 11; // bit 20 of the immediate
+                // const imm10_1 = (imm & 0x7FE) << 20; // bits [10:1] of the immediate
+                // const imm11 = (imm & 0x100000) >> 9; // bit 11 of the immediate
+                // const imm19_12 = (imm & 0xFF000) << 1; // bits [19:12] of the immediate
+                // const opcode: u32 = 0b1101111;
+                // return opcode | (@as(u32, jtype.rd) << 7) | imm19_12 | imm11 | imm10_1 | imm20;
+
+                // WAY: 2
+                // const imm = jtype.imm;
+                const imm = @as(u32, @bitCast(jtype.imm));
+                const imm20 = (@as(u32, imm) & 0x100000) >> 20; // bit 20 to bit 31
+                const imm10_1 = (@as(u32, imm) & 0x7FE) << 20; // bits [10:1] to bits [30:21]
+                const imm11 = (@as(u32, imm) & 0x800) << 9; // bit 11 to bit 20
+                const imm19_12 = (@as(u32, imm) & 0xFF000); // bits [19:12] to bits [19:12]
+                const imm_combined = (imm20 << 31) | imm10_1 | imm11 | imm19_12;
+
+                // Opcode for JAL
                 const opcode: u32 = 0b1101111;
-                return opcode | (@as(u32, jtype.rd) << 7) | imm19_12 | imm11 | imm10_1 | imm20;
+
+                // Combine the opcode, rd, and the immediate parts
+                return opcode | (@as(u32, jtype.rd) << 7) | imm_combined;
             },
             .ECALLType => |ecalltype| {
                 const imm_as_u32: u32 = 0b000000000000; // 12-bit

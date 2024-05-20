@@ -4,8 +4,12 @@ module CPU (
 );
 
 // COUNTER & INSTRUCTION MEMORY
-reg [31:0] pc;
-reg [31:0] instruction;
+wire [31:0] pc;
+reg [31:0] next_pc;
+reg [31:0] pc_reg;
+
+wire [31:0] instruction;
+
 
 // DATA RAM
 reg [31:0] RAM[0:255]; // RAM with 32-bits x 256
@@ -14,13 +18,23 @@ reg [31:0] RAM[0:255]; // RAM with 32-bits x 256
 reg [31:0] regs[0:31]; // 31-bit x 32 registers
 
 
+
+/* *********************************** */
+// PROGRAM COUNTER
+ProgramCounter program_counter (
+    .clk(clk),
+    .reset(reset),
+
+    .next_pc(next_pc),
+    .pc(pc)
+);
+
+
+
 /* *********************************** */
 // FETCH
 InstructionMemory instr_mem (
-    .clk(clk),
-    .reset(reset),
-    .addr(pc),
-    
+    .address(pc),
     .instruction(instruction)
 );
 
@@ -72,19 +86,41 @@ RV32I_Decoder decoder (
 /* *********************************** */
 // EXECUTE
 
+
+// always @(posedge clk or posedge reset) begin
+//     if (reset) begin
+//         pc_reg <= 32'b0;
+//     end else begin
+//         pc_reg <= pc; // Store the current PC
+//     end
+// end
+
+
+// always @(*) begin
+always @(posedge clk) begin
+    $display("[PC]");
+
+    if (j_type) begin // JAL opcode
+        $display("JAL imm: %d", imm);
+
+        regs[rd] = pc + 4;
+        next_pc = pc + imm; // Jump to the target address
+    end else begin
+        next_pc = pc + 4; // Default to next sequential instruction
+    end
+
+    $display("\n");
+end
+
+
+
 reg [31:0] s_type_adr;
 reg [31:0] s_type_data;
-
-reg istr_mem_load = 1'b0;
-reg [31:0] istr_mem_load_addr = 32'b0;
 
 // always @* begin
 always @(posedge clk or posedge reset) begin
     $display("program_counter = %b, %d", pc, pc);
     $display("instruction: %b", instruction);
-
-    // istr_mem_load = 1'b0;
-    // istr_mem_load_addr = 32'b0;
 
     if (reset) begin
         $display("reset");
@@ -152,7 +188,6 @@ always @(posedge clk or posedge reset) begin
                 end
 
             endcase
-
         end else if (b_type) begin
             $display("B-type");
         end else if (u_type) begin
@@ -171,7 +206,7 @@ always @(posedge clk or posedge reset) begin
                     $display("AUIPC");
 
                     // TODO: TEST it
-                    regs[rd] = pc + imm;
+                    // regs[rd] = pc + imm;
                     $display("rd = %b", regs[rd]);
                 end
             endcase
@@ -180,11 +215,8 @@ always @(posedge clk or posedge reset) begin
             $display("J-type");
 
             regs[rd] = pc + 4;
-            istr_mem_load = 1'b1;
-            istr_mem_load_addr = pc - (4*3);
 
-            $display("pc = %b", pc);
-
+            $display("pc_reg = %b", pc_reg);
 
         end else if (ecall_type) begin
             $display("ECALL");
@@ -199,24 +231,8 @@ always @(posedge clk or posedge reset) begin
 
 
 
-$display("\n");
-
+    $display("\n");
 end
-
-
-
-/* *********************************** */
-// PROGRAM COUNTER
-ProgramCounter program_counter (
-    .clk(clk),
-    .reset(reset),
-    .enable(1'b1),
-
-    .load(istr_mem_load),
-    .addr(istr_mem_load_addr),
-    
-    .pc(pc)
-);
 
 
 
@@ -224,6 +240,7 @@ endmodule;
 
 
 
+/*
 module ProgramCounter (
     input wire clk,
     input wire reset,
@@ -232,7 +249,7 @@ module ProgramCounter (
     input wire load,
     input wire [31:0] addr,
     
-    output reg [31:0] pc
+    output wire [31:0] pc
 );
 
 always @(posedge clk or posedge reset) begin
@@ -241,13 +258,36 @@ always @(posedge clk or posedge reset) begin
         pc <= 32'b0;
     end else if (enable) begin
         if (load) begin
-            pc <= addr;
+            // pc <= addr;
+            assign pc = addr;
         end else begin
             // $display("pc: %b", pc);
-            pc <= pc + 4;
+            // pc <= pc + 4;
+            assign pc = pc + 4;
         end
     end
 
+end
+
+endmodule
+*/
+
+
+module ProgramCounter (
+    input wire clk,
+    input wire reset,
+
+    input wire [31:0] next_pc,
+
+    output reg [31:0] pc
+);
+
+always @(posedge clk or posedge reset) begin
+    if (reset) begin
+        pc <= 32'b0; // Reset PC to 0
+    end else begin
+        pc <= next_pc; // Update PC to the next instruction address
+    end
 end
 
 endmodule
@@ -255,25 +295,47 @@ endmodule
 
 
 
+module InstructionMemory (
+    input wire [31:0] address,
+    output reg [31:0] instruction
+);
 
+// Example memory initialization (256 x 32-bit memory)
+reg [31:0] RAM [0:255];
+
+// Initialize the memory with instructions (for simulation purposes)
+initial begin
+    $readmemb("instructions.bin", RAM);
+end
+
+always @(*) begin
+    instruction = RAM[address >> 2]; // Fetch instruction (word-aligned address)
+end
+
+endmodule
+
+
+
+/*
 module InstructionMemory (
     input clk,
     input reset,
     input wire [31:0] addr,
 
-    output reg [31:0] instruction
+    output wire [31:0] instruction
 );
 
 reg [31:0] RAM[0:255]; // RAM with 32-bits x 256
 
 always @(posedge clk) begin
     if (reset) begin
-        instruction <= 32'b0;
+        // instruction <= 32'b0;
+        assign instruction = 32'b0;
     end else begin
         // Fetch instruction based on address. Address is divided by 4 (shifted right by 2 bits) 
         // because each instruction is 4 bytes (32 bits) wide.
-        instruction <= RAM[addr >> 2];
-        // instruction = RAM[addr >> 2];
+        // instruction <= RAM[addr >> 2];
+        assign instruction = RAM[addr >> 2];
         // instruction <= RAM[addr];
     end
 end
@@ -286,6 +348,7 @@ end
 
 
 endmodule
+*/
 
 
 
