@@ -264,10 +264,12 @@ const Instruction = union(enum) {
                 return opcode | imm4_0 | (funct3 << 12) | (@as(u32, stype.rs1) << 15) | (@as(u32, stype.rs2) << 20) | imm11_5;
             },
             .BType => |btype| {
-                const imm11 = (@as(u32, @as(u12, @bitCast(btype.imm))) & 0x800) << 20; // bit 11 of the immediate
-                const imm4_1 = (@as(u32, @as(u12, @bitCast(btype.imm))) & 0x1E) << 7; // bits [4:1] of the immediate
-                const imm10_5 = (@as(u32, @as(u12, @bitCast(btype.imm))) & 0x7E0) << 20; // bits [10:5] of the immediate
-                const imm12 = (@as(u32, @as(u12, @bitCast(btype.imm))) & 0x1000) << 19; // bit 12 of the immediate
+                const imm_u32 = @as(u32, @as(u12, @bitCast(btype.imm)));
+                // const imm_u32 = @as(u32, @bitCast(@as(i32, @intCast(btype.imm)))); // <- this worked slightly better
+                const imm11 = (imm_u32 & 0x800) << 20; // bit 11 of the immediate
+                const imm4_1 = (imm_u32 & 0x1E) << 7; // bits [4:1] of the immediate
+                const imm10_5 = (imm_u32 & 0x7E0) << 20; // bits [10:5] of the immediate
+                const imm12 = (imm_u32 & 0x1000) << 19; // bit 12 of the immediate
                 const opcode: u32 = switch (btype.instruction) {
                     .Beq => 0b1100011,
                     .Bne => 0b1100011,
@@ -284,7 +286,33 @@ const Instruction = union(enum) {
                     .Bltu => 0b110,
                     .Bgeu => 0b111,
                 };
-                return opcode | imm11 | imm4_1 | (funct3 << 12) | (@as(u32, btype.rs1) << 15) | (@as(u32, btype.rs2) << 20) | imm10_5 | imm12;
+
+                // print("imm[raw]:            {d}\n", .{btype.imm});
+                // print("imm[i32]:            {d}\n", .{@as(i32, @intCast(btype.imm))});
+                // print("imm[u32]:            {d}\n", .{@as(u32, @bitCast(@as(i32, @intCast(btype.imm))))});
+
+                // print("imm                  {b:032}\n", .{imm_u32});
+                // print("opcode:              {b:032}\n", .{opcode});
+                // print("imm11:               {b:032}\n", .{imm11});
+                // print("imm4_1:              {b:032}\n", .{imm4_1});
+                // print("imm10_5:             {b:032}\n", .{imm10_5});
+                // print("imm12:               {b:032}\n", .{imm12});
+
+                // print("o|11:                {b:032}\n", .{opcode | imm11});
+                // print("o|11|4_1:            {b:032}\n", .{opcode | imm11 | imm4_1});
+                // print("o|11|4_1:            {b:032}\n", .{opcode | imm11 | imm4_1});
+                // print("o|11|4_1|10_5|12:    {b:032}\n", .{opcode | imm11 | imm4_1 | imm10_5 | imm12});
+
+                // print("res                  {b:032}\n", .{opcode | imm11 | imm4_1 | (funct3 << 12) | (@as(u32, btype.rs1) << 15) | (@as(u32, btype.rs2) << 20) | imm10_5 | imm12});
+
+                var result = opcode | imm11 | imm4_1 | (funct3 << 12) | (@as(u32, btype.rs1) << 15) | (@as(u32, btype.rs2) << 20) | imm10_5 | imm12;
+
+                // TODO: HACK to fix the issue with the immediate value when negative
+                if (@as(i12, @bitCast(btype.imm)) < 0) { // if negative
+                    result |= (1 << 7); // convert 8th (imm11) bit to 1
+                }
+
+                return result;
             },
             .UType => |utype| {
                 const imm31_12 = @as(u32, @bitCast(utype.imm)) << 12 & 0xFFFFF000; // bits [31:12] of the immediate

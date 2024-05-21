@@ -27,6 +27,9 @@ _start:
     # li x5, 0          # x5 = 0
     lui x5, 0
 
+    beq x5, x6, _start
+    beq x5, x6, target
+
     # Example JAL instruction
     jal x1, target    # Jump to 'target' and store return address in x1
 
@@ -43,10 +46,12 @@ target:
     jalr x2, 0(x1)      # (RISCV equivalent)
 
     # TESTING
-    # beq x5, x6, _start
+    beq x5, x6, _start
+    # beq x5, x6, add
 
     # This instruction should not be executed
     addi x5, x5, 3    # x5 = x5 + 3 (should not be executed)
 
 
-
+add:
+    lui x5, 0

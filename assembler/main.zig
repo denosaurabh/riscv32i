@@ -187,12 +187,9 @@ pub fn main() !void {
                 };
 
                 if (found_assem_fn) |assem_fn| {
-                    print("LLLL: {d} {d}\n\n", .{ assem_fn.starts_at, index });
-                    const offset: u32 = (assem_fn.starts_at - index) * 2;
+                    const offset: i32 = (@as(i32, @intCast(assem_fn.starts_at)) - @as(i32, @intCast(index))) * 4;
+                    // const offset: u32 = (assem_fn.starts_at - index) * 4;
                     const offset_str = try std.fmt.allocPrint(allocator, "{d}", .{offset});
-
-                    // const buf: [256]u8 = undefined;
-                    // const offset_str = try std.fmt.bufPrint(&buf, "{}", offset);
 
                     // if (std.mem.eql(u8, instruction, "jal")) {
                     tokens[if (std.mem.eql(u8, instruction, "jal")) 2 else 3] = offset_str;
@@ -201,7 +198,6 @@ pub fn main() !void {
                         std.log.err("Error assembling line: {}", .{err});
                         return err;
                     };
-                    // print("assemble_output: {}\n", .{assemble_output});
 
                     // convert to binary
                     var result = try std.fmt.allocPrint(std.heap.page_allocator, "{b}", .{assemble_output});
