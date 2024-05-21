@@ -116,46 +116,51 @@ always @(posedge clk) begin
         case (funct3) 
             3'b000: begin
                 $display("BEQ");
-                 if (regs[rs1] == regs[rs2])
+                 if (regs[rs1] == regs[rs2]) begin
                     next_pc = pc + {{19{imm[12]}}, imm};
-                else
+                 end else begin
                     next_pc = pc + 4;
+                 end
             end
             3'b001: begin
                 $display("BNE");
-                 if (regs[rs1] != regs[rs2])
+                 if (regs[rs1] != regs[rs2]) begin
                     next_pc = pc + {{19{imm[12]}}, imm};
-                else
+                end else begin
                     next_pc = pc + 4;
+                end 
             end
             3'b100: begin
                 $display("BLT");
-                if ($signed(regs[rs1]) < $signed(regs[rs2]))
+                if ($signed(regs[rs1]) < $signed(regs[rs2])) begin
                     next_pc = pc + {{19{imm[12]}}, imm};
-                else
+                end else begin
                     next_pc = pc + 4;
+                end 
             end
             3'b101: begin
                 $display("BGE");
-                if ($signed(regs[rs1]) >= $signed(regs[rs2]))
+                if ($signed(regs[rs1]) >= $signed(regs[rs2])) begin
                     next_pc = pc + {{19{imm[12]}}, imm};
-                else
+                end else begin
                     next_pc = pc + 4; 
+                end 
             end
             3'b110: begin
                 $display("BLTU");
-                next_pc = pc + 4;
-                  if (regs[rs1] < regs[rs2])
+                if (regs[rs1] < regs[rs2]) begin
                     next_pc = pc + {{19{imm[12]}}, imm};
-                else
+                end else begin
                     next_pc = pc + 4;
+                end 
             end
             3'b111: begin
                 $display("BGEU");
-                if (regs[rs1] >= regs[rs2])
+                if (regs[rs1] >= regs[rs2]) begin
                     next_pc = pc + {{19{imm[12]}}, imm};
-                else
+                end else begin
                     next_pc = pc + 4;
+                end
             end
             default: begin
                 next_pc = pc + 4;
