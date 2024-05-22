@@ -34,6 +34,29 @@ pub fn expand_macros(allocator: std.mem.Allocator, tokens: [][]const u8) !Expand
         instructions[0][2] = "0(ra)";
 
         return ExpandMacrosReturn{ .has_multiple_instructions = true, .instructions = instructions };
+    } else if (eql(instruction, "nop")) {
+        var instructions = try allocator.alloc([][]const u8, 1);
+        instructions[0] = try allocator.alloc([]const u8, 4);
+
+        instructions[0][0] = "addi";
+        instructions[0][1] = "x0";
+        instructions[0][2] = "x0";
+        instructions[0][3] = "0";
+
+        return ExpandMacrosReturn{ .has_multiple_instructions = true, .instructions = instructions };
+    } else if (eql(instruction, "mv")) {
+        const dest = tokens[1];
+        const src = tokens[2];
+
+        var instructions = try allocator.alloc([][]const u8, 1);
+        instructions[0] = try allocator.alloc([]const u8, 4);
+
+        instructions[0][0] = "addi";
+        instructions[0][1] = dest;
+        instructions[0][2] = src;
+        instructions[0][3] = "0";
+
+        return ExpandMacrosReturn{ .has_multiple_instructions = true, .instructions = instructions };
     }
 
     const empty_3d_array: [][][]const u8 = &[_][][]const u8{};
