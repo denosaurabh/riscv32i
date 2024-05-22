@@ -24,37 +24,6 @@
 
 _start:
     # Initialize registers
-    # li x5, 0          # x5 = 0
-    lui x5, 0
+    li x5, 123456         # x5 = 0
+    # lui x5, 0
 
-    beq x5, x6, _start
-    beq x5, x6, target
-
-    beq x5, x6, 378
-    beq x5, x6, -783
-
-    # Example JAL instruction
-    jal x1, target    # Jump to 'target' and store return address in x1
-
-    # Code after JAL (this will be skipped initially due to the jump)
-    addi x5, x5, 1    # x5 = x5 + 1 (should not be executed immediately)
-
-
-
-target:
-    addi x5, x5, 2    # x5 = x5 + 2
-
-    # Return to the address stored in x1
-    # jr x1             # Jump to the address in x1 (return address)
-    jalr x2, 0(x1)      # (RISCV equivalent)
-
-    # TESTING
-    beq x5, x6, _start
-    # beq x5, x6, add
-
-    # This instruction should not be executed
-    addi x5, x5, 3    # x5 = x5 + 3 (should not be executed)
-
-
-add:
-    lui x5, 0

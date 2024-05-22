@@ -1,5 +1,6 @@
 const std = @import("std");
 const assembler = @import("assembler.zig");
+const instr_macros = @import("macros.zig");
 const utils = @import("utils.zig");
 const tests = @import("tests.zig");
 
@@ -112,8 +113,22 @@ pub fn main() !void {
                 if (utils.matchesAny(tokens[0], &function_reference_type_instructions)) {
                     try instructions.append(removed_commas_line);
                 } else {
-                    const assemble_output = try assembler.assemble(&allocator, tokens);
-                    try instructions.append(assemble_output);
+                    const macros_return = try instr_macros.expand_macros(allocator, tokens);
+
+                    if (macros_return.has_multiple_instructions) {
+                        for (macros_return.instructions) |instr| {
+                            const assemble_output = try assembler.assemble(&allocator, instr);
+                            try instructions.append(assemble_output);
+
+                            instruction_index += 1;
+                        }
+                    } else {
+                        const assemble_output = try assembler.assemble(&allocator, tokens);
+                        try instructions.append(assemble_output);
+                    }
+
+                    // const assemble_output = try assembler.assemble(&allocator, tokens);
+                    // try instructions.append(assemble_output);
                 }
             }
         }
