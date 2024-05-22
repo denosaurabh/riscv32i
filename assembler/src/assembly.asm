@@ -27,3 +27,5 @@ _start:
     li x5, 123456         # x5 = 0
     # lui x5, 0
 
+    ecall print x5
+
