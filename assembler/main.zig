@@ -124,10 +124,6 @@ pub fn main() !void {
                             }
 
                             instruction_index += 1;
-
-                            // const assemble_output = try assembler.assemble(&allocator, instr);
-                            // try instructions.append(assemble_output);
-                            // instruction_index += 1;
                         }
                     } else {
                         instruction_index += 1;
@@ -135,9 +131,6 @@ pub fn main() !void {
                         const assemble_output = try assembler.assemble(&allocator, tokens);
                         try instructions.append(assemble_output);
                     }
-
-                    // const assemble_output = try assembler.assemble(&allocator, tokens);
-                    // try instructions.append(assemble_output);
                 }
             }
         }
@@ -240,9 +233,7 @@ fn combineTokens(allocator: std.mem.Allocator, tokens: []const []const u8) ![]co
 
     // Append each token to the list with spaces in between
     var i: u32 = 0;
-    for (tokens) |
-        token,
-    | {
+    for (tokens) |token| {
         try list.appendSlice(token);
         if (i < tokens.len - 1) {
             try list.append(' ');

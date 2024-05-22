@@ -21,8 +21,17 @@ pub fn expand_macros(allocator: std.mem.Allocator, tokens: [][]const u8) !Expand
         instructions[0] = try allocator.alloc([]const u8, 3);
 
         instructions[0][0] = "jal";
-        instructions[0][1] = "x1";
+        instructions[0][1] = "ra";
         instructions[0][2] = target;
+
+        return ExpandMacrosReturn{ .has_multiple_instructions = true, .instructions = instructions };
+    } else if (eql(instruction, "ret")) {
+        var instructions = try allocator.alloc([][]const u8, 1);
+        instructions[0] = try allocator.alloc([]const u8, 3);
+
+        instructions[0][0] = "jalr";
+        instructions[0][1] = "x0";
+        instructions[0][2] = "0(ra)";
 
         return ExpandMacrosReturn{ .has_multiple_instructions = true, .instructions = instructions };
     }
