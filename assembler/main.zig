@@ -99,8 +99,6 @@ pub fn main() !void {
 
                 // check for macros & expand them
 
-                instruction_index += 1;
-
                 // remove any commas
                 const size = std.mem.replacementSize(u8, line, ",", "");
                 const removed_commas_line = try allocator.alloc(u8, size);
@@ -111,6 +109,7 @@ pub fn main() !void {
 
                 // check instructions that refer a function
                 if (utils.matchesAny(tokens[0], &function_reference_type_instructions)) {
+                    instruction_index += 1;
                     try instructions.append(removed_commas_line);
                 } else {
                     const macros_return = try instr_macros.expand_macros(allocator, tokens);
@@ -123,6 +122,8 @@ pub fn main() !void {
                             instruction_index += 1;
                         }
                     } else {
+                        instruction_index += 1;
+
                         const assemble_output = try assembler.assemble(&allocator, tokens);
                         try instructions.append(assemble_output);
                     }
@@ -155,14 +156,16 @@ pub fn main() !void {
                 if (utils.matchesAny(tokens[0], &function_reference_type_instructions)) {}
 
                 const instruction = tokens[0];
-                var function_name_or_int = tokens[3]; // all other ins
-                if (std.mem.eql(u8, instruction, "jal")) {
-                    function_name_or_int = tokens[2];
+                var function_name_or_int = tokens[2]; // all other ins
+                if (!std.mem.eql(u8, instruction, "jal")) {
+                    function_name_or_int = tokens[3];
                 }
 
                 // calculate offset
                 const offset = parseOffsetFromInstruction(&functions_list, function_name_or_int, index);
                 const offset_str = try std.fmt.allocPrint(allocator, "{d}", .{offset});
+
+                print("offset: {d}\n", .{offset});
 
                 tokens[if (std.mem.eql(u8, instruction, "jal")) 2 else 3] = offset_str;
 
