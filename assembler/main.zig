@@ -116,10 +116,18 @@ pub fn main() !void {
 
                     if (macros_return.has_multiple_instructions) {
                         for (macros_return.instructions) |instr| {
-                            const assemble_output = try assembler.assemble(&allocator, instr);
-                            try instructions.append(assemble_output);
+                            if (utils.matchesAny(instr[0], &function_reference_type_instructions)) {
+                                try instructions.append(try combineTokens(allocator, instr));
+                            } else {
+                                const assemble_output = try assembler.assemble(&allocator, instr);
+                                try instructions.append(assemble_output);
+                            }
 
                             instruction_index += 1;
+
+                            // const assemble_output = try assembler.assemble(&allocator, instr);
+                            // try instructions.append(assemble_output);
+                            // instruction_index += 1;
                         }
                     } else {
                         instruction_index += 1;
@@ -223,4 +231,26 @@ fn parseOffsetFromInstruction(functions_list: *std.ArrayListAligned(AssembleFunc
     };
 
     return offset;
+}
+
+fn combineTokens(allocator: std.mem.Allocator, tokens: []const []const u8) ![]const u8 {
+    // Create an ArrayList to collect the combined string
+    var list = std.ArrayList(u8).init(allocator);
+    defer list.deinit();
+
+    // Append each token to the list with spaces in between
+    var i: u32 = 0;
+    for (tokens) |
+        token,
+    | {
+        try list.appendSlice(token);
+        if (i < tokens.len - 1) {
+            try list.append(' ');
+        }
+
+        i += 1;
+    }
+
+    // Return the combined string as a slice
+    return list.toOwnedSlice();
 }

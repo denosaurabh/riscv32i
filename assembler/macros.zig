@@ -14,6 +14,17 @@ pub fn expand_macros(allocator: std.mem.Allocator, tokens: [][]const u8) !Expand
         const immediate = try std.fmt.parseInt(i32, imm, 10);
 
         return ExpandMacrosReturn{ .has_multiple_instructions = true, .instructions = try convertLiToLuiAddi(immediate, reg, allocator) };
+    } else if (eql(instruction, "j")) {
+        const target = tokens[1];
+
+        var instructions = try allocator.alloc([][]const u8, 1);
+        instructions[0] = try allocator.alloc([]const u8, 3);
+
+        instructions[0][0] = "jal";
+        instructions[0][1] = "x1";
+        instructions[0][2] = target;
+
+        return ExpandMacrosReturn{ .has_multiple_instructions = true, .instructions = instructions };
     }
 
     const empty_3d_array: [][][]const u8 = &[_][][]const u8{};
