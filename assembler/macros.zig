@@ -57,6 +57,19 @@ pub fn expand_macros(allocator: std.mem.Allocator, tokens: [][]const u8) !Expand
         instructions[0][3] = "0";
 
         return ExpandMacrosReturn{ .has_multiple_instructions = true, .instructions = instructions };
+    } else if (eql(instruction, "call")) {
+        const target = tokens[1];
+
+        var instructions = try allocator.alloc([][]const u8, 1);
+
+        // !IMPORTANT: only will work if function is within ±1 MiB of the call site, (otherwise use `li` + `addi` + `jalr` instead)
+        // thankfully, in our case, RAM ain't that big (1kb right now)
+        instructions[0] = try allocator.alloc([]const u8, 3);
+        instructions[0][0] = "jal";
+        instructions[0][1] = "ra";
+        instructions[0][2] = target;
+
+        return ExpandMacrosReturn{ .has_multiple_instructions = true, .instructions = instructions };
     }
 
     const empty_3d_array: [][][]const u8 = &[_][][]const u8{};

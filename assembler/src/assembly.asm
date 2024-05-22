@@ -9,7 +9,9 @@ _jal:
     ecall print x6
     ecall print x7
 
-    jal x2, inc
+    # jal x2, inc
+
+    call inc
 
 
 inc:
