@@ -1,3 +1,4 @@
+// CREDIT: https://www.fromthetransistor.com
 const std = @import("std");
 const registry = @import("registry.zig");
 const utils = @import("utils.zig");

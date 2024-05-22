@@ -30,9 +30,6 @@ _start:
     beq x5, x6, _start
     beq x5, x6, target
 
-    beq x5, x6, 378
-    beq x5, x6, -783
-
     # Example JAL instruction
     jal x1, target    # Jump to 'target' and store return address in x1
 

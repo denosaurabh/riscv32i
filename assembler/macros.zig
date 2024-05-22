@@ -1,0 +1,1 @@
+const instruction_macros_keys = ["li"]
