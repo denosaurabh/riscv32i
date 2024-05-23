@@ -10,9 +10,24 @@ reg [31:0] pc_reg;
 
 wire [31:0] instruction;
 
-
 // DATA RAM
-reg [31:0] RAM[0:255]; // RAM with 32-bits x 256
+// reg [31:0] RAM[0:255]; // RAM with 32-bits x 256
+reg [31:0] RAM[0:1023]; // RAM with 32-bits x 1024
+
+// testing
+// parameter KEYBOARD_ADDRESS = 32'h00000000;
+// parameter DISPLAY_ADDRESS = 32'h00100000;
+// task write_keyboard_presses(input [7:0] key, input [7:0] pressed);
+//     begin
+//         RAM[KEYBOARD_ADDRESS + key] = pressed;
+//     end
+// endtask
+
+// task read_display_output(input [7:0] offset, output [7:0] ascii);
+//     begin
+//         ascii = RAM[DISPLAY_ADDRESS + offset];
+//     end
+// endtask
 
 // REGISTERS
 reg [31:0] regs[0:31]; // 31-bit x 32 registers
