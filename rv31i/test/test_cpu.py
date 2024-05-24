@@ -26,13 +26,18 @@ async def test_cpu(cpu):
     # for i in range(50):
     #     await RisingEdge(cpu.clk)
     
+    i = 0;
     while(True): 
         await RisingEdge(cpu.clk)
 
-        do_continue = await listen_to_display_ram(cpu)
+        # do_continue = await listen_to_display_ram(cpu)
+        # if do_continue == 0:
+        #     break
 
-        if do_continue == 0:
+        if i > 5:
             break
+
+        i += 1
 
 
     await Timer(10, units='ns')
